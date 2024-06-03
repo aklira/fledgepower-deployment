@@ -22,7 +22,7 @@
 
 VERSION=$1
 
-wget -O ./fledge-north-iec104.tar.gz https://github.com/fledge-power/fledge-north-iec104/archive/refs/tags/$VERSION.tar.gz
+wget -O ./fledge-north-iec104.tar.gz https://github.com/aklira/fledge-north-iec104/archive/refs/tags/$VERSION.tar.gz
 tar -xf fledge-north-iec104.tar.gz
 mv fledge-north-iec104-* fledge-north-iec104
 cd fledge-north-iec104
