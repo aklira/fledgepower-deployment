@@ -57,7 +57,7 @@ jobs:
       # Download fledgepower deployment
       - name: Download fledgepower deployment
         env: 
-          FP_DEPLOY_REPO: "https://github.com/fledge-power/fledgepower-deployment.git"
+          FP_DEPLOY_REPO: "https://github.com/aklira/fledgepower-deployment.git"
         run: |
           git clone ${{ env.FP_DEPLOY_REPO }}
           
