@@ -1,12 +1,12 @@
 version: "1.0"
 
 fledge:
-    version: 2.4.0-96
-    release: "fixes/RTEP"
+    version: 2.5.0
+    release: 2.5.0
     operatingsystem: ubuntu2004
     architecture: x86_64
-    dispatcherversion: 2.4.0-9
-    notifversion: 2.4.0-2
+    dispatcherversion: 2.5.0
+    notifversion: 2.5.0
 
 build_modules:
   - module: 
@@ -41,7 +41,7 @@ build_modules:
       version: v1.2.3
   - module: 
       name: fledge-north-iec104_build.sh
-      version: v1.0.0-test
+      version: v1.2.2
   - module: 
       name: lib60870-install.sh
       version: v1.0.0
