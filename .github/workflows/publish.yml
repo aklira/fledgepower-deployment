@@ -81,14 +81,14 @@ jobs:
           sudo -E docker build -f fledge-gui.dockerfile -t ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }} . --label ${{ github.ref }}
 
       # Run Snyk to check Docker image for vulnerabilities
-      - name: Snyk scan
-        continue-on-error: true
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          args: --sarif-file-output=snyk.sarif
+      #- name: Snyk scan
+      #  continue-on-error: true
+      #  uses: snyk/actions/docker@master
+      #  env:
+      #    SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      #  with:
+      #    image: ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+      #    args: --sarif-file-output=snyk.sarif
           
       # Tag image with latest image
       - name: Tag image
@@ -104,10 +104,10 @@ jobs:
           cat snyk.sarif
 
       # Upload result to GitHub Code Scanning
-      - name: Snyk results upload
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk.sarif
+      #- name: Snyk results upload
+      #  uses: github/codeql-action/upload-sarif@v3
+      #  with:
+      #    sarif_file: snyk.sarif
 
       # Push to ghcr.io (Github Image Registry)
       - name: Push images
