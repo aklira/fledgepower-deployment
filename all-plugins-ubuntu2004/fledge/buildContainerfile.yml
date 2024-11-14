@@ -56,6 +56,9 @@ build_modules:
       name: fledgepower-filter-iec104topivot_build.sh
       version: v1.2.0
   - module: 
+      name: fledge-north-hnz_build.sh
+      version: v1.0.0-RC1
+  - module: 
       name: fledge-south-hnz_build.sh
       version: v2.1.1
   - module: 
