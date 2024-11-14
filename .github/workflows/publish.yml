@@ -14,9 +14,9 @@ env:
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
   FLEDGE_IMAGE_NAME: 'fledgepower/fledge'
   FLEDGE_GUI_IMAGE_NAME: 'fledgepower/fledge-gui'
-  #IMAGE_TAG: '1.0.0-amd64'
+  IMAGE_TAG: '1.0.0-resyst'
   #IMAGE_TAG: 'latest'
-  IMAGE_TAG: ${{ github.ref_name }}
+  #IMAGE_TAG: ${{ github.ref_name }}
   TASE2_REPO_ACCESS_TOKEN: ${{ secrets.TASE2_REPO_ACCESS_TOKEN }}
 
 jobs:
@@ -58,7 +58,7 @@ jobs:
       # Download fledgepower deployment
       - name: Download fledgepower deployment
         env:
-          FP_DEPLOY_REPO: "https://github.com/fledge-power/fledgepower-deployment.git"
+          FP_DEPLOY_REPO: "https://github.com/aklira/fledgepower-deployment.git"
         run: |
           git clone ${{ env.FP_DEPLOY_REPO }} --branch ${{ github.ref_name }} --single-branch
 
@@ -94,7 +94,7 @@ jobs:
       - name: Tag image
         run: |
            sudo -E docker tag ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:latest
-           sudo -E docker tag ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:latest
+           #sudo -E docker tag ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:latest
 
       # Replace security-severity undefined for license-related findings
       - name: Replace security-severity undefined for license-related findings
@@ -113,6 +113,6 @@ jobs:
       - name: Push images
         run: |
           sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:latest
-          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:latest
+          #sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_IMAGE_NAME }}:latest
+          #sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          #sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:latest
