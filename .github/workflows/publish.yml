@@ -97,11 +97,11 @@ jobs:
            #sudo -E docker tag ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.FLEDGE_GUI_IMAGE_NAME }}:latest
 
       # Replace security-severity undefined for license-related findings
-      - name: Replace security-severity undefined for license-related findings
-        run: |
-          sed -i 's/"security-severity": "undefined"/"security-severity": "0"/g' snyk.sarif
-          sed -i 's/"security-severity": "null"/"security-severity": "0"/g' snyk.sarif
-          cat snyk.sarif
+      #- name: Replace security-severity undefined for license-related findings
+      #  run: |
+      #    sed -i 's/"security-severity": "undefined"/"security-severity": "0"/g' snyk.sarif
+      #    sed -i 's/"security-severity": "null"/"security-severity": "0"/g' snyk.sarif
+      #    cat snyk.sarif
 
       # Upload result to GitHub Code Scanning
       #- name: Snyk results upload
