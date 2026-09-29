@@ -19,12 +19,13 @@
 set -euo pipefail
 
 VERSION=$1
+TAG="v${VERSION#v}"
 SOURCE_DIR=/tmp/fledge-service-notification
 
 rm -rf "$SOURCE_DIR"
-wget -q -O /tmp/fledge-service-notification.zip "https://github.com/fledge-iot/fledge-service-notification/archive/refs/tags/${VERSION}.zip"
+wget -q -O /tmp/fledge-service-notification.zip "https://github.com/fledge-iot/fledge-service-notification/archive/refs/tags/${TAG}.zip"
 unzip -q /tmp/fledge-service-notification.zip -d /tmp
-mv "/tmp/fledge-service-notification-${VERSION}" "$SOURCE_DIR"
+mv "/tmp/fledge-service-notification-${VERSION#v}" "$SOURCE_DIR"
 
 cmake -S "$SOURCE_DIR" -B "$SOURCE_DIR/build" \
     -DFLEDGE_SRC=/tmp/fledge \

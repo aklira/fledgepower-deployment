@@ -12,8 +12,10 @@ ENV FLEDGE_ROOT=/usr/local/fledge
 # Avoid interactive questions when installing Kerberos
 ENV DEBIAN_FRONTEND=noninteractive
 
+# ca-certificates is required for HTTPS downloads from GitHub.
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install --no-install-recommends --yes \
     git \
+    ca-certificates \
     curl \
     unzip \
     sudo \

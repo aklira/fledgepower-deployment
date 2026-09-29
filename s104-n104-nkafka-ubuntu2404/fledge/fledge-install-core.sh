@@ -11,3 +11,12 @@ mv "/tmp/fledge-${VERSION#v}" "$SOURCE_DIR"
 
 cd "$SOURCE_DIR"
 ./requirements.sh
+
+# requirements.sh changes to its SQLite source directory before invoking make.
+# Build Fledge explicitly, then install its targets without the package-only
+# schema pre-check, which requires an existing Fledge installation.
+cd "$SOURCE_DIR"
+make -j"$(nproc)"
+mkdir -p /usr/local/fledge
+make fledge_version_file_install c_install python_install python_requirements \
+    scripts_install bin_install extras_install data_install

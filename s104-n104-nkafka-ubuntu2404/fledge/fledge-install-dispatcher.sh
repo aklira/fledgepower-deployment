@@ -19,12 +19,13 @@
 set -euo pipefail
 
 VERSION=$1
+TAG="v${VERSION#v}"
 SOURCE_DIR=/tmp/fledge-service-dispatcher
 
 rm -rf "$SOURCE_DIR"
-wget -q -O /tmp/fledge-service-dispatcher.zip "https://github.com/fledge-iot/fledge-service-dispatcher/archive/refs/tags/${VERSION}.zip"
+wget -q -O /tmp/fledge-service-dispatcher.zip "https://github.com/fledge-iot/fledge-service-dispatcher/archive/refs/tags/${TAG}.zip"
 unzip -q /tmp/fledge-service-dispatcher.zip -d /tmp
-mv "/tmp/fledge-service-dispatcher-${VERSION}" "$SOURCE_DIR"
+mv "/tmp/fledge-service-dispatcher-${VERSION#v}" "$SOURCE_DIR"
 
 cmake -S "$SOURCE_DIR" -B "$SOURCE_DIR/build" \
     -DFLEDGE_SRC=/tmp/fledge \
