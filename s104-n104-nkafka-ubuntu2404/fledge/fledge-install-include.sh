@@ -20,12 +20,7 @@
 ## Author: Mark Riddoch, Akli Rahmoun
 ##
 
-GITHEAD=$1
-
-wget -O ./fledge.zip https://github.com/fledge-iot/fledge/archive/refs/tags/$GITHEAD.zip
-unzip -q fledge.zip
-mv fledge-* fledge
-cd fledge
+cd /tmp/fledge
 mkdir -p /usr/local/fledge/include/rapidjson/
 find C/common/ -name '*.h' -exec cp -prv '{}' '/usr/local/fledge/include' ';'
 find C/plugins/ -name '*.h' -exec cp -prv '{}' '/usr/local/fledge/include' ';'

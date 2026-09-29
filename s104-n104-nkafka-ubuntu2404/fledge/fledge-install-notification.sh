@@ -16,16 +16,18 @@
 ## limitations under the License.
 ##--------------------------------------------------------------------
 
-##
-## Author: Mark Riddoch, Akli Rahmoun
-##
-FLEDGENOTIFVERSION=$1
-RELEASE=$2
-OPERATINGSYSTEM=$3
-ARCHITECTURE=$4
-FLEDGELINK="http://archives.fledge-iot.org/$RELEASE/$OPERATINGSYSTEM/$ARCHITECTURE"
+set -euo pipefail
 
-wget --no-check-certificate ${FLEDGELINK}/fledge-service-notification_${FLEDGENOTIFVERSION}_${ARCHITECTURE}.deb
-dpkg --unpack ./fledge-service-notification_${FLEDGENOTIFVERSION}_${ARCHITECTURE}.deb
-apt-get install -yf
-apt-get clean -y
+VERSION=$1
+SOURCE_DIR=/tmp/fledge-service-notification
+
+rm -rf "$SOURCE_DIR"
+wget -q -O /tmp/fledge-service-notification.zip "https://github.com/fledge-iot/fledge-service-notification/archive/refs/tags/${VERSION}.zip"
+unzip -q /tmp/fledge-service-notification.zip -d /tmp
+mv "/tmp/fledge-service-notification-${VERSION}" "$SOURCE_DIR"
+
+cmake -S "$SOURCE_DIR" -B "$SOURCE_DIR/build" \
+    -DFLEDGE_SRC=/tmp/fledge \
+    -DFLEDGE_INSTALL=/usr/local/fledge
+cmake --build "$SOURCE_DIR/build" --parallel "$(nproc)"
+cmake --install "$SOURCE_DIR/build"

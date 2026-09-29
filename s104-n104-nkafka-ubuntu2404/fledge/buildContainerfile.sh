@@ -31,20 +31,12 @@ dockerfiletemplate="fledge.template.dockerfile"
 cp $dockerfiletemplate $dockerfile
 
 # Read configuration values
-FLEDGEVERSION=$(yq e '.fledge.version' "$yaml_file")
-RELEASE=$(yq e '.fledge.release' "$yaml_file")
 GITHEAD=$(yq e '.fledge.githead' "$yaml_file")
-OPERATINGSYSTEM=$(yq e '.fledge.operatingsystem' "$yaml_file")
-ARCHITECTURE=$(yq e '.fledge.architecture' "$yaml_file")
 FLEDGEDISPATCHERVERSION=$(yq e '.fledge.dispatcherversion' "$yaml_file")
 FLEDGENOTIFVERSION=$(yq e '.fledge.notifversion' "$yaml_file")
 
 # Update Containerfile args values
-sed -i "s/ARG FLEDGEVERSION=.*/ARG FLEDGEVERSION=\"$FLEDGEVERSION\"/" $dockerfile
-sed -i "s|ARG RELEASE=.*|ARG RELEASE=\"$RELEASE\"|" $dockerfile
 sed -i "s|ARG GITHEAD=.*|ARG GITHEAD=\"$GITHEAD\"|" $dockerfile
-sed -i "s/ARG OPERATINGSYSTEM=.*/ARG OPERATINGSYSTEM=\"$OPERATINGSYSTEM\"/" $dockerfile
-sed -i "s/ARG ARCHITECTURE=.*/ARG ARCHITECTURE=\"$ARCHITECTURE\"/" $dockerfile
 sed -i "s/ARG FLEDGEDISPATCHERVERSION=.*/ARG FLEDGEDISPATCHERVERSION=\"$FLEDGEDISPATCHERVERSION\"/" $dockerfile
 sed -i "s/ARG FLEDGENOTIFVERSION=.*/ARG FLEDGENOTIFVERSION=\"$FLEDGENOTIFVERSION\"/" $dockerfile
 

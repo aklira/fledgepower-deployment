@@ -2,15 +2,10 @@ FROM ubuntu:24.04
 
 LABEL author="Akli Rahmoun"
 
-# Set FLEDGE version, distribution, and platform
-ARG FLEDGEVERSION=FLEDGEVERSION
-ARG RELEASE=RELEASE
+# Set Fledge component versions
 ARG GITHEAD=GITHEAD
-ARG OPERATINGSYSTEM=OPERATINGSYSTEM
-ARG ARCHITECTURE=ARCHITECTURE
 ARG FLEDGEDISPATCHERVERSION=FLEDGEDISPATCHERVERSION
 ARG FLEDGENOTIFVERSION=FLEDGENOTIFVERSION
-ARG FLEDGELINK="http://archives.fledge-iot.org/${RELEASE}/${OPERATINGSYSTEM}/${ARCHITECTURE}"
 
 ENV FLEDGE_ROOT=/usr/local/fledge
 
@@ -33,38 +28,28 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get install --no-install-re
     libssl-dev zlib1g-dev pkg-config libcurl4-openssl-dev libboost-dev && \
     echo '=============================================='
 
-RUN mkdir ./fledge && \
-    wget -O ./fledge/fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb --no-check-certificate ${FLEDGELINK}/fledge_${FLEDGEVERSION}_${ARCHITECTURE}.deb && \
-    dpkg --unpack ./fledge/fledge-${FLEDGEVERSION}-${ARCHITECTURE}.deb && \
-    sed '/^.*_fledge_service$/d' /var/lib/dpkg/info/fledge.postinst > /fledge.postinst && \
-    mv /var/lib/dpkg/info/fledge.postinst /var/lib/dpkg/info/fledge.postinst.save && \
-    apt-get install -yf && \
-    mkdir -p /usr/local/fledge/data/extras/fogbench && \
-    chmod +x /fledge.postinst && \
-    /fledge.postinst && \
-    rm -f /*.tgz && \
-    rm -rf -r /fledge && \
-    apt-get autoremove -y && \
-    apt-get clean -y && \
-    rm -rf /var/lib/apt-get/lists/ && \
+COPY fledge-install-core.sh /tmp/
+
+RUN chmod +x /tmp/fledge-install-core.sh && \
+    /tmp/fledge-install-core.sh ${GITHEAD} && \
     echo '=============================================='
 
 COPY fledge-install-include.sh /tmp/
 
 RUN chmod +x /tmp/fledge-install-include.sh && \
-    /tmp/fledge-install-include.sh ${GITHEAD} && \
+    /tmp/fledge-install-include.sh && \
     echo '=============================================='
 
 COPY fledge-install-dispatcher.sh /tmp/
 
 RUN chmod +x /tmp/fledge-install-dispatcher.sh && \
-    /tmp/fledge-install-dispatcher.sh ${FLEDGEDISPATCHERVERSION} ${RELEASE} ${OPERATINGSYSTEM} ${ARCHITECTURE} && \
+    /tmp/fledge-install-dispatcher.sh ${FLEDGEDISPATCHERVERSION} && \
     echo '=============================================='
 
 COPY fledge-install-notification.sh /tmp/
 
 RUN chmod +x /tmp/fledge-install-notification.sh && \
-    /tmp/fledge-install-notification.sh ${FLEDGENOTIFVERSION} ${RELEASE} ${OPERATINGSYSTEM} ${ARCHITECTURE} && \
+    /tmp/fledge-install-notification.sh ${FLEDGENOTIFVERSION} && \
     echo '=============================================='
 
 # Hotfix for uppercase ssl certificate, can be removed after integrating Fledge >= 2.7.0 (including commit 9d8bc89)

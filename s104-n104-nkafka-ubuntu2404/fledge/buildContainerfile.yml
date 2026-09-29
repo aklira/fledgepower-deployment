@@ -1,11 +1,7 @@
 version: "1.0"
 
 fledge:
-    version: 3.1.0
-    release: 3.1.0
     githead: v3.1.0
-    operatingsystem: ubuntu2404
-    architecture: x86_64
     dispatcherversion: 3.1.0
     notifversion: 3.1.0
 
