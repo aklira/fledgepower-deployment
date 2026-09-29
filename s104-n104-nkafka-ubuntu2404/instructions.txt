@@ -1,0 +1,23 @@
+Est-ce que tu pourrais m'écrire le code de build qui permet de construire une image Docker fledgepower/fledge et de la publier sur: ghcr.io/aklira/fledgepower/fledge
+Le code de build sera exécuté par une github Action décrite par le fichier publish.yml
+
+Cette image utilise une image de base ubuntu24.04 et les composants suivants:
+
+Voici le lien des repos des composants:
+fledge:
+https://github.com/fledge-iot/fledge/archive/refs/tags/v3.1.0.zip
+fledge dispatcher:
+https://github.com/fledge-iot/fledge-service-dispatcher/archive/refs/tags/v3.1.0.zip
+plugin north kafka:
+https://github.com/fledge-iot/fledge-north-kafka/archive/refs/tags/v3.1.0.zip
+plugin south 104:
+https://github.com/fledge-power/fledge-south-iec104/releases/tag/v2.0.0
+plugin north 104:
+https://github.com/fledge-power/fledge-north-iec104/archive/refs/tags/v2.0.0.zip
+
+Au démarrage du conteneur, tous les services doivent être up and running.
+
+Pour le code de build tu peux t'inspirer du code du dossier ./all-plugins-ubuntu2404/fledge
+Pour le code du github Action, tu peux t'inspirer du code /.github/workflows/publish.yml
+
+Tu stockeras le code dans le dossier "s104-n104-nkafka-ubuntu2404/"

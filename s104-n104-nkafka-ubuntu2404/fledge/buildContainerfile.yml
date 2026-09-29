@@ -1,0 +1,31 @@
+version: "1.0"
+
+fledge:
+    version: 3.1.0
+    release: 3.1.0
+    githead: v3.1.0
+    operatingsystem: ubuntu2404
+    architecture: x86_64
+    dispatcherversion: 3.1.0
+    notifversion: 3.1.0
+
+build_modules:
+  - module:
+      name: lib60870-install.sh
+      version: v2.3.6
+  - module:
+      name: fledge-south-iec104_build.sh
+      version: v2.0.0
+  - module:
+      name: fledge-north-iec104_build.sh
+      version: v2.0.0
+  - module:
+      name: fledge-north-kafka_build.sh
+      version: v3.1.0
+
+ports:
+  - 8080
+  - 8081
+  - 8090
+  - 1995
+  - 2404

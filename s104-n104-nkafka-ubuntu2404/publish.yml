@@ -1,0 +1,114 @@
+name: Publish s104-n104-nkafka ubuntu2404
+
+# Controls when the workflow will run
+on:
+  push:
+    tags:
+      - v* # publish only on version tags
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Define the tag (e.g. v2.3.1). If not set, the current branch or tag name will be used. If set, the image will be built and tagged using this tag.'
+        required: false
+        type: string
+      publish:
+        description: 'Check if you want to publish the image'
+        required: true
+        type: boolean
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_OWNER: aklira
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  FLEDGE_IMAGE_NAME: 'fledgepower/fledge'
+  IMAGE_TAG: ${{ github.event.inputs.tags || github.ref_name }}
+  LATEST_TAG: "${{ github.event_name == 'workflow_dispatch' && 'latest-dev' || 'latest' }}"
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      # Clone repo
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.tags || github.ref }}
+          path: fledgepower-deployment
+
+      # Download and install yq yaml processor
+      - name: Download and install yq
+        env:
+          YQ_REPO: "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+        run: |
+          sudo wget -qO /usr/local/bin/yq ${{ env.YQ_REPO }}
+          sudo chmod a+x /usr/local/bin/yq
+
+      # Log in to the Container registry ghcr.io
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      # Activate Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Execute script to prepare Dockerfiles
+      - name: Prepare Dockerfiles
+        run: |
+          cd ./fledgepower-deployment/s104-n104-nkafka-ubuntu2404/fledge/
+          sudo chmod +x ./buildContainerfile.sh
+          ./buildContainerfile.sh
+
+      # Build Fledge
+      - name: Build Fledge
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fledgepower-deployment/s104-n104-nkafka-ubuntu2404/fledge/
+          file: ./fledgepower-deployment/s104-n104-nkafka-ubuntu2404/fledge/fledge.dockerfile
+          load: true
+          tags: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Tag image with latest image
+      - name: Tag image
+        run: |
+          sudo -E docker tag ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.LATEST_TAG }}
+
+      # Push to ghcr.io (Github Image Registry) only when it's required
+      - name: Push images
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        run: |
+          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          sudo -E docker push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.LATEST_TAG }}
+
+      # Run Snyk to check Docker image for vulnerabilities
+      - name: Snyk scan
+        continue-on-error: true
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FLEDGE_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          args: --file=fledgepower-deployment/s104-n104-nkafka-ubuntu2404/fledge/fledge.dockerfile
+
+      # Replace security-severity undefined for license-related findings
+      - name: Replace security-severity undefined for license-related findings
+        if: ${{ hashFiles('snyk.sarif') != '' }}
+        run: |
+          sed -i 's/"security-severity": "undefined"/"security-severity": "0"/g' snyk.sarif
+          sed -i 's/"security-severity": "null"/"security-severity": "0"/g' snyk.sarif
+
+      # Upload result to GitHub Code Scanning
+      - name: Snyk results upload
+        if: ${{ hashFiles('snyk.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
