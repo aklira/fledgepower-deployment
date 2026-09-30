@@ -21,6 +21,7 @@
 ##
 
 VERSION=$1
+PLUGIN_DIR="${FLEDGE_ROOT}/plugins/north/kafka"
 
 # Build and install librdkafka, required by the kafka plugin
 git clone --branch v2.1.1 --depth 1 https://github.com/confluentinc/librdkafka.git
@@ -40,8 +41,11 @@ mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DFLEDGE_INCLUDE=/usr/local/fledge/include/ -DFLEDGE_LIB=/usr/local/fledge/lib/ ..
 make
-if [ ! -d "${FLEDGE_ROOT}/plugins/north/kafka" ]
+if [ ! -d "$PLUGIN_DIR" ]
 then
-    mkdir -p $FLEDGE_ROOT/plugins/north/kafka
+    mkdir -p "$PLUGIN_DIR"
 fi
-cp libKafka.so $FLEDGE_ROOT/plugins/north/kafka/libkafka.so
+# PluginManager derives the shared-library name from the plugin name. The
+# Kafka plugin advertises "Kafka", so keep the filename produced by its build
+# instead of changing its case during installation.
+cp libKafka.so "$PLUGIN_DIR/libKafka.so"

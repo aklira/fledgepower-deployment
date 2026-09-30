@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 ##--------------------------------------------------------------------
 ## Copyright (c) 2022, RTE (https://www.rte-france.com)
@@ -20,7 +21,15 @@
 ## Author: Mark Riddoch, Akli Rahmoun
 ##
 
-cd /tmp/fledge
+SOURCE_DIR=/tmp/fledge
+if [ ! -d "$SOURCE_DIR" ]; then
+    echo "Fledge source directory not found: $SOURCE_DIR" >&2
+    exit 1
+fi
+
+# Use the exact source tree used to build Fledge. Do not clone the moving
+# default branch here: plugin headers must match libcommon-lib.so.
+cd "$SOURCE_DIR"
 mkdir -p /usr/local/fledge/include/rapidjson/
 find C/common/ -name '*.h' -exec cp -prv '{}' '/usr/local/fledge/include' ';'
 find C/plugins/ -name '*.h' -exec cp -prv '{}' '/usr/local/fledge/include' ';'
