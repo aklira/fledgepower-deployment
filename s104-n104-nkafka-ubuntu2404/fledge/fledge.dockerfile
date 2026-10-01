@@ -1,0 +1,95 @@
+FROM ubuntu:24.04
+
+LABEL author="Akli Rahmoun"
+
+# Set Fledge component versions
+ARG GITHEAD="v3.1.0"
+ARG FLEDGEDISPATCHERVERSION="3.1.0"
+ARG FLEDGENOTIFVERSION="3.1.0"
+
+ENV FLEDGE_ROOT=/usr/local/fledge
+
+# Avoid interactive questions when installing Kerberos
+ENV DEBIAN_FRONTEND=noninteractive
+
+# ca-certificates is required for HTTPS downloads from GitHub.
+RUN apt-get update && apt-get dist-upgrade -y && apt-get install --no-install-recommends --yes \
+    git \
+    ca-certificates \
+    curl \
+    unzip \
+    sudo \
+    iputils-ping \
+    inetutils-telnet \
+    nano \
+    rsyslog \
+    sed \
+    wget \
+    jq \
+    cmake g++ make build-essential autoconf automake uuid-dev \
+    libssl-dev zlib1g-dev pkg-config libcurl4-openssl-dev libboost-dev && \
+    echo '=============================================='
+
+COPY fledge-install-core.sh /tmp/
+
+RUN chmod +x /tmp/fledge-install-core.sh && \
+    /tmp/fledge-install-core.sh ${GITHEAD} && \
+    echo '=============================================='
+
+COPY fledge-install-include.sh /tmp/
+
+RUN chmod +x /tmp/fledge-install-include.sh && \
+    /tmp/fledge-install-include.sh && \
+    echo '=============================================='
+
+COPY fledge-install-dispatcher.sh /tmp/
+
+RUN chmod +x /tmp/fledge-install-dispatcher.sh && \
+    /tmp/fledge-install-dispatcher.sh ${FLEDGEDISPATCHERVERSION} && \
+    echo '=============================================='
+
+COPY fledge-install-notification.sh /tmp/
+
+RUN chmod +x /tmp/fledge-install-notification.sh && \
+    /tmp/fledge-install-notification.sh ${FLEDGENOTIFVERSION} && \
+    echo '=============================================='
+
+# Hotfix for uppercase ssl certificate, can be removed after integrating Fledge >= 2.7.0 (including commit 9d8bc89)
+RUN sed -i '/username =.*commonName/ s/ *$/.lower()/' "/usr/local/fledge/python/fledge/services/core/api/auth.py"
+
+COPY lib60870-install.sh /tmp/lib60870-install.sh
+RUN chmod +x /tmp/lib60870-install.sh && /tmp/lib60870-install.sh v2.3.6
+
+COPY fledge-south-iec104_build.sh /tmp/fledge-south-iec104_build.sh
+RUN chmod +x /tmp/fledge-south-iec104_build.sh && /tmp/fledge-south-iec104_build.sh v2.0.0
+
+COPY fledge-north-iec104_build.sh /tmp/fledge-north-iec104_build.sh
+RUN chmod +x /tmp/fledge-north-iec104_build.sh && /tmp/fledge-north-iec104_build.sh v2.0.0
+
+COPY fledge-north-kafka_build.sh /tmp/fledge-north-kafka_build.sh
+RUN chmod +x /tmp/fledge-north-kafka_build.sh && /tmp/fledge-north-kafka_build.sh v3.1.0
+
+COPY fledgepower-rule-systemsp_build.sh /tmp/fledgepower-rule-systemsp_build.sh
+RUN chmod +x /tmp/fledgepower-rule-systemsp_build.sh && /tmp/fledgepower-rule-systemsp_build.sh v2.0.0
+
+COPY fledgepower-notify-systemsp_build.sh /tmp/fledgepower-notify-systemsp_build.sh
+RUN chmod +x /tmp/fledgepower-notify-systemsp_build.sh && /tmp/fledgepower-notify-systemsp_build.sh v2.0.0
+
+# INSERT MODULES TO BUILD HERE
+
+WORKDIR /usr/local/fledge
+
+COPY importModules.sh importModules.sh
+COPY start.sh start.sh
+
+# REMOVE SOURCES IN /tmp
+RUN rm -rf /tmp/*
+
+RUN chmod +x start.sh
+VOLUME /usr/local/fledge
+
+# INSERT PORT LIST HERE
+EXPOSE 8080 8081 8090 1995 2404
+
+# start rsyslog, FLEDGE, and tail syslog
+CMD ["/bin/bash","/usr/local/fledge/start.sh"]

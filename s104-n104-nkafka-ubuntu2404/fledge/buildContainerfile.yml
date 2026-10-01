@@ -18,6 +18,12 @@ build_modules:
   - module:
       name: fledge-north-kafka_build.sh
       version: v3.1.0
+  - module:
+      name: fledgepower-rule-systemsp_build.sh
+      version: v2.0.0
+  - module:
+      name: fledgepower-notify-systemsp_build.sh
+      version: v2.0.0
 
 ports:
   - 8080

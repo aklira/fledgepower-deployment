@@ -49,3 +49,5 @@ fi
 # Kafka plugin advertises "Kafka", so keep the filename produced by its build
 # instead of changing its case during installation.
 cp libKafka.so "$PLUGIN_DIR/libKafka.so"
+ln -sfn kafka "${FLEDGE_ROOT}/plugins/north/Kafka"
+ln -sfn libKafka.so "$PLUGIN_DIR/libkafka.so"

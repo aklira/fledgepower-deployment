@@ -7,13 +7,13 @@ sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
 rsyslogd
 
 /usr/local/fledge/bin/fledge -u admin -p fledge start
-sleep 10
+for _ in {1..60}; do curl -fsS http://localhost:8081/fledge/ping >/dev/null && break; sleep 1; done
 
 password_token=$(curl -X POST http://localhost:8081/fledge/login -d'{"username" : "admin",  "password" : "fledge"}' | jq -r ".token" 2>/dev/null)
 if [ ! -z "$password_token" ]; then
     curl -X PUT http://localhost:8081/fledge/category/rest_api -d '{"authentication":"optional"}' -H "authorization: $password_token"
 fi
 
-sleep 10
+sleep 2
 sh importModules.sh $password_token
 tail -f /var/log/syslog
