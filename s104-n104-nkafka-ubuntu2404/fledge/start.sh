@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Unprivileged Docker containers do not have access to the kernel log. This prevents an error when starting rsyslogd.
 sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
@@ -7,13 +8,20 @@ sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
 rsyslogd
 
 /usr/local/fledge/bin/fledge -u admin -p fledge start
-for _ in {1..60}; do curl -fsS http://localhost:8081/fledge/ping >/dev/null && break; sleep 1; done
+for _ in {1..60}; do
+    curl -fsS http://localhost:8081/fledge/ping >/dev/null && break
+    sleep 1
+done
+curl -fsS http://localhost:8081/fledge/ping >/dev/null
 
-password_token=$(curl -X POST http://localhost:8081/fledge/login -d'{"username" : "admin",  "password" : "fledge"}' | jq -r ".token" 2>/dev/null)
-if [ ! -z "$password_token" ]; then
-    curl -X PUT http://localhost:8081/fledge/category/rest_api -d '{"authentication":"optional"}' -H "authorization: $password_token"
+password_token=$(curl -fsS -X POST http://localhost:8081/fledge/login \
+    -H 'content-type: application/json' \
+    -d '{"username":"admin","password":"fledge"}' | jq -er '.token')
+if [[ -n "$password_token" ]]; then
+    curl -fsS -X PUT http://localhost:8081/fledge/category/rest_api \
+        -d '{"authentication":"optional"}' -H "authorization: $password_token" >/dev/null
 fi
 
 sleep 2
-sh importModules.sh $password_token
+/bin/bash /usr/local/fledge/importModules.sh "$password_token"
 tail -f /var/log/syslog

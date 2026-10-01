@@ -28,6 +28,24 @@ the control pipeline, and only then enables South, North, and Kafka North.
 Running it a second time is supported. Set `SOUTH_RTU_IP` and
 `NORTH_CLIENT_IP` to override the bench defaults.
 
+The script is always invoked with Bash. If a previous run was interrupted,
+rerun it; it reconciles the three service definitions and removes a stale
+category reservation when Fledge rejects a missing service because its name is
+still reserved. It verifies all three services reach `running` before
+returning success.
+
+To clean an instance without deleting the volume, run the following after the
+Fledge API is available:
+
+```sh
+/bin/bash /usr/local/fledge/importModules.sh "$FLEDGE_TOKEN" --clean
+```
+
+The cleanup deletes the control pipeline first, disables and deletes
+`kafkanorth`, `iec104north`, and `iec104south`, then deletes their categories.
+It waits up to 30 seconds and fails if any service endpoint still exists. A
+volume deletion remains the fallback when Fledge itself cannot release a name.
+
 The North-to-South control pipeline is required for commands in this Fledge
 3.1 deployment. The data pipelines are internal to the plugins and are not
 needed for the minimal command route.
