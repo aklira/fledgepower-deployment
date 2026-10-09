@@ -4,36 +4,75 @@ set -euo pipefail
 # Services stay disabled until their categories and control route are ready.
 # A service is reconciled before its categories are written so an interrupted
 # bootstrap can be resumed without leaving a category-only reservation behind.
+#
+# Fledge 3.1 has no GET/PUT /fledge/service/<name> route (405). A service is
+# therefore looked up through its schedule (existence, process type and
+# enabled flag), its plugin through its category, and its running state
+# through the GET /fledge/service list. Control pipelines have no route by
+# name either and are looked up by id.
 API=${FLEDGE_API:-http://localhost:8081/fledge}
 TOKEN=${1:-}
 auth=()
 [[ -n "$TOKEN" ]] && auth=(-H "authorization: $TOKEN")
 api() { curl --fail --silent --show-error "${auth[@]}" "$@"; }
 wait_api() { for _ in {1..60}; do curl -fsS "$API/ping" >/dev/null && return 0; sleep 1; done; return 1; }
-cleanup() {
-    # Delete dependants before their categories. Fledge may release a name
-    # asynchronously, so verify each service URL is gone before returning.
-    api -X DELETE "$API/control/pipeline/iec104north_to_iec104south" >/dev/null 2>&1 || true
-    for name in kafkanorth iec104north iec104south; do
-        api -X PUT "$API/service/$name" -H 'content-type: application/json' \
-            -d '{"enabled":false}' >/dev/null 2>&1 || true
-        api -X DELETE "$API/service/$name" >/dev/null 2>&1 || true
-    done
-    for name in kafkanorth iec104north iec104south; do
-        api -X DELETE "$API/category/$name" >/dev/null 2>&1 || true
-    done
+
+# Process name of the schedule Fledge creates for each service type.
+process_name() {
+    case $1 in
+        south) echo south_c ;;
+        north) echo north_C ;;
+        *) echo "bootstrap: unknown service type $1" >&2; return 1 ;;
+    esac
+}
+schedule_of() {
+    api "$API/schedule" | jq -ce --arg n "$1" '.schedules[] | select(.name == $n)'
+}
+service_exists() { schedule_of "$1" >/dev/null 2>&1; }
+set_enabled() {
+    local action=disable
+    [[ "$2" == true ]] && action=enable
+    api -X PUT "$API/schedule/$action" -H 'content-type: application/json' \
+        -d "$(jq -cn --arg n "$1" '{schedule_name:$n}')" >/dev/null
+}
+# True when the existing service has the expected type and plugin. Plugin
+# names are compared without case: the kafka plugin reports itself as Kafka.
+service_matches() {
+    local name=$1 type=$2 plugin=$3 process
+    process=$(process_name "$type") || return 1
+    schedule_of "$name" | jq -e --arg p "$process" '.processName == $p' >/dev/null 2>&1 &&
+        api "$API/category/$name" | jq -e --arg p "$plugin" '(.plugin.value | ascii_downcase) == ($p | ascii_downcase)' >/dev/null 2>&1
+}
+delete_service() {
+    local name=$1
+    set_enabled "$name" false 2>/dev/null || true
+    api -X DELETE "$API/service/$name" >/dev/null 2>&1 || true
     for _ in {1..30}; do
-        local remaining=0
-        for name in kafkanorth iec104north iec104south; do
-            api "$API/service/$name" >/dev/null 2>&1 && remaining=1
-        done
-        if (( remaining == 0 )); then
-            return 0
-        fi
+        service_exists "$name" || break
         sleep 1
     done
-    echo "bootstrap cleanup: service names are still reserved" >&2
-    return 1
+    api -X DELETE "$API/category/$name" >/dev/null 2>&1 || true
+}
+# Control pipelines are addressed by their numeric id, not by name.
+pipeline_id() {
+    api "$API/control/pipeline" | jq -er --arg n "$1" '.pipelines[] | select(.name == $n) | .id'
+}
+cleanup() {
+    # Delete dependants before their categories. Fledge may release a name
+    # asynchronously, so verify each schedule is gone before returning.
+    local id
+    if id=$(pipeline_id iec104north_to_iec104south); then
+        api -X DELETE "$API/control/pipeline/$id" >/dev/null 2>&1 || true
+    fi
+    for name in kafkanorth iec104north iec104south; do
+        delete_service "$name"
+    done
+    for name in kafkanorth iec104north iec104south; do
+        if service_exists "$name"; then
+            echo "bootstrap cleanup: service names are still reserved" >&2
+            return 1
+        fi
+    done
 }
 if [[ "${2:-}" == "--clean" ]]; then
     wait_api
@@ -46,19 +85,13 @@ service() {
     payload=$(jq -cn --arg name "$name" --arg type "$type" --arg plugin "$plugin" \
         '{name:$name,type:$type,plugin:$plugin,enabled:false}')
 
-    if api "$API/service/$name" >/dev/null 2>&1; then
-        # PUT the complete identity as well as enabled=false. This repairs an
-        # existing service created with an obsolete plugin or service type.
-        if api -X PUT "$API/service/$name" -H 'content-type: application/json' -d "$payload" >/dev/null; then
+    if service_exists "$name"; then
+        if service_matches "$name" "$type" "$plugin"; then
+            set_enabled "$name" false
             return
         fi
-        # Older Fledge API versions do not allow changing type/plugin with
-        # PUT. Recreate the service in that case, after disabling it first.
-        api -X PUT "$API/service/$name" -H 'content-type: application/json' \
-            -d '{"enabled":false}' >/dev/null 2>&1 || true
-        api -X DELETE "$API/service/$name" >/dev/null
-        sleep 2
-        api -X DELETE "$API/category/$name" >/dev/null 2>&1 || true
+        # Created with an obsolete plugin or service type: recreate it.
+        delete_service "$name"
         api -X POST "$API/service" -H 'content-type: application/json' -d "$payload" >/dev/null
         return
     fi
@@ -72,27 +105,24 @@ service() {
     fi
 }
 category() { api -X PUT "$API/category/$1" -H 'content-type: application/json' -d "$2" >/dev/null; }
-enable() { api -X PUT "$API/service/$1" -H 'content-type: application/json' -d '{"enabled":true}' >/dev/null; }
+enable() { set_enabled "$1" true; }
 verify_service() {
-    local name=$1 type=$2 plugin=$3 service_json
-    service_json=$(api "$API/service/$name")
-    jq -e --arg type "$type" --arg plugin "$plugin" \
-        '(.type == $type) and (.plugin == $plugin)' <<<"$service_json" >/dev/null || {
-        echo "bootstrap: service $name has an unexpected type or plugin" >&2
+    service_matches "$1" "$2" "$3" || {
+        echo "bootstrap: service $1 has an unexpected type or plugin" >&2
         return 1
     }
 }
 wait_running() {
-    local name=$1 service_json
+    local name=$1
     for _ in {1..60}; do
-        service_json=$(api "$API/service/$name")
-        if jq -e '(.status == "running") or (.state == "running")' <<<"$service_json" >/dev/null; then
+        if api "$API/service" | jq -e --arg n "$name" \
+            '.services[] | select(.name == $n and .status == "running")' >/dev/null; then
             return 0
         fi
         sleep 1
     done
     echo "bootstrap: service $name did not reach running state" >&2
-    api "$API/service/$name" >&2 || true
+    api "$API/service" >&2 || true
     return 1
 }
 
@@ -113,8 +143,8 @@ verify_service kafkanorth north kafka
 
 # Fledge 3.1 requires a control pipeline for North IEC 104 commands.
 pipeline='{"execution":"Shared","source":{"type":2,"name":"iec104north"},"destination":{"type":2,"name":"iec104south"},"filters":[],"enabled":true,"name":"iec104north_to_iec104south"}'
-if api "$API/control/pipeline/iec104north_to_iec104south" >/dev/null 2>&1; then
-    api -X PUT "$API/control/pipeline/iec104north_to_iec104south" -H 'content-type: application/json' -d "$pipeline" >/dev/null
+if pipeline_id=$(pipeline_id iec104north_to_iec104south); then
+    api -X PUT "$API/control/pipeline/$pipeline_id" -H 'content-type: application/json' -d "$pipeline" >/dev/null
 else
     api -X POST "$API/control/pipeline" -H 'content-type: application/json' -d "$pipeline" >/dev/null
 fi
